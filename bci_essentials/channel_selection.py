@@ -56,9 +56,7 @@ def channel_selection_by_method(kernel_func, X, y, channel_labels,              
     """
 
     # max length can't be greater than the length of channel labels
-    if max_channels > len(channel_labels):
-        max_channels = len(channel_labels)
-
+    max_channels = min(max_channels, len(channel_labels))
     if method == "SBS":
         if initial_channels == []:
             initial_channels = channel_labels
@@ -85,22 +83,22 @@ def channel_selection_by_method(kernel_func, X, y, channel_labels,              
 
 def check_stopping_criterion(current_time, nchannels, current_performance_delta, max_time, min_channels, max_channels, performance_delta, print_output=True):
     if current_time > max_time:
-        if print_output == "verbose" or print_output == "final":
+        if print_output in ["verbose", "final"]:
             print("Stopping based on time")
         return True
 
     elif nchannels <= min_channels:
-        if print_output == "verbose" or print_output == "final":
+        if print_output in ["verbose", "final"]:
             print("Stopping because minimum number of channels reached")
         return True
 
     elif nchannels >= max_channels:
-        if print_output == "verbose" or print_output == "final":
+        if print_output in ["verbose", "final"]:
             print("Stopping because maximum number of channels reached")
         return True
 
     elif current_performance_delta < performance_delta:
-        if print_output == "verbose" or print_output == "final":
+        if print_output in ["verbose", "final"]:
             print("Stopping because performance improvements are declining")
         return True
 
@@ -115,11 +113,7 @@ def sbs(kernel_func, X, y, channel_labels,
     start_time = time.time()
 
     nwindows, nchannels, nsamples = X.shape
-    sbs_subset = []
-
-    for i,c in enumerate(channel_labels):
-        if c in initial_channels:
-            sbs_subset.append(i)
+    sbs_subset = [i for i, c in enumerate(channel_labels) if c in initial_channels]
 
     previous_performance = 0
 
@@ -130,7 +124,7 @@ def sbs(kernel_func, X, y, channel_labels,
     precision = 0
     recall = 0
 
-    while(stop_criterion == False):
+    while not stop_criterion:
         sets_to_try = []
         X_to_try = []
         for c in sbs_subset:
@@ -148,7 +142,7 @@ def sbs(kernel_func, X, y, channel_labels,
 
         # This handles the multiprocessing to check multiple channel combinations at once if n_jobs > 1
         outputs = Parallel(n_jobs=n_jobs)(delayed(kernel_func)(Xtest,y) for Xtest in X_to_try) 
-            
+
         models = []
         predictions = []
         accuracies = []
@@ -206,7 +200,7 @@ def sbs(kernel_func, X, y, channel_labels,
 
     new_channel_subset = [channel_labels[c] for c in sbs_subset]
 
-    if print_output == "verbose" or print_output == "final":
+    if print_output in ["verbose", "final"]:
         print(new_channel_subset)
         print(metric, " : ", current_performance)
         print("Time to optimal subset: ", time.time()-start_time, "s")

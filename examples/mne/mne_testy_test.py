@@ -48,9 +48,9 @@ print(info)
 # marker array
 # onset, duration, value, stim_file
 stim_index = 0
-stim_table = list()
+stim_table = []
 
-stim_table = [ [ [] for i in range(4) ] for i in range(1000) ]
+stim_table = [[[] for _ in range(4)] for _ in range(1000)]
 stim_array = np.ndarray([1000,3], dtype=int)
 erp_stim_array = np.ndarray([1000,3], dtype=int)
 
@@ -71,19 +71,19 @@ for i in range(len(test_erp.marker_timestamps)):
             stim_table[stim_index][0] = timestamp
             stim_array[stim_index,0] = int(np.round(timestamp * test_erp.fsample)) 
             erp_stim_array[stim_index,0] = int(np.round(timestamp * test_erp.fsample)) 
-            
+
             # duration (will have to add this in)
             stim_table[stim_index][1] = 0.2
             #stim_array[stim_index,1] = 0.2
-            
+
             stim_array[stim_index,1] = 0
             erp_stim_array[stim_index,1] = 0
-            
+
 
             # value
             stim_table[stim_index][2] = markers[4+j]
 
-            
+
             stim_array[stim_index, 2] = markers[4+j]
 
             # save the value if it is an ERP or 99 otherwise
@@ -133,7 +133,7 @@ num_objects = 9
 averages = [0] * num_objects
 for i in range(num_objects):
     averages[i] = epochs[i].average()
-    
+
 #nonerp = epochs[99].average()
 
 

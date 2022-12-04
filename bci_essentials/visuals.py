@@ -37,27 +37,17 @@ def decision_vis(decision_block, f_sample, label, channel_labels = [], ylims=(-1
     for p in range(P):
         ax[p] = plt.subplot(P+1,1,p+1)
 
-    # Plot the ERP in the first subplot
-    # for n in range(N):
-    #     ax[0].plot(t, decision_block[label,n,:], label=channel_labels[n])
-    #     ax[0].legend()
-    #     ax[0].set_ylim(ylims)
-
-
-    ind = 0
     # Plot non ERP in the subsequent subplots
-    for p in range(P):
+    for ind, p in enumerate(range(P)):
         if p == label:
             for n in range(N):
                 ax[ind].plot(t, decision_block[label,n,:], label=channel_labels[n])
 
             ax[ind].legend()
-            ax[ind].set_ylim(ylims) 
+            ax[ind].set_ylim(ylims)
             ax[ind].set_ylabel("ERP")
 
-            
 
-            ind += 1
 
         else:
             for n in range(N):
@@ -66,12 +56,6 @@ def decision_vis(decision_block, f_sample, label, channel_labels = [], ylims=(-1
             ax[ind].set_ylim(ylims)
             ax[ind].legend()
             ax[ind].set_ylabel("Not ERP")
-
-            ind += 1
-
-            
-
-    
 
     plt.show()
 
@@ -103,12 +87,14 @@ def plot_big_decision_block(big_decision_block, f_sample, channel_labels = [], e
         t[m] = m / f_sample
 
     fig = [None] * D
+    # plot any non ERP
+    non_erp_label = 0
     # for d in D create a figure
     for d in range(D):
         fig[d], ax = plt.subplots(nrows=2,ncols=1)
 
         # for ERP in O and one non ERP in O, each in own subplot
-        
+
         # plot the ERP
         erp_label = erp_targets[d]
         # for w in W plot the signal
@@ -116,53 +102,47 @@ def plot_big_decision_block(big_decision_block, f_sample, channel_labels = [], e
             sum_range = big_decision_block[d,erp_label,w,0,0:10].sum()
             if sum_range != 0:
                 for n in range(N):
-                    color_string = "C{}".format(int(n))
+                    color_string = f"C{int(n)}"
                     ax[0].plot(t, big_decision_block[d,erp_label,w,n,:], label=channel_labels[n], color=color_string)
 
                 # plot the average of all W in bold
-                color_string = "C{}".format(int(n))
+                color_string = f"C{int(n)}"
             else:
                 wmax = w-1
                 break
-        
+
         win_mean_bdb = np.mean(big_decision_block[d,erp_label,:,:,:], axis=0)
         for n in range(N):
-            color_string = "C{}".format(int(n))
+            color_string = f"C{int(n)}"
             ax[0].plot(t, win_mean_bdb[n,:], label=channel_labels[n], color=color_string, linewidth=1.0)
 
-        ax[0].set_title("ERP on object{}".format(erp_label))
+        ax[0].set_title(f"ERP on object{erp_label}")
         ax[0].set_ylim(ylims)
         ax[0].legend()
 
-        
-        # plot any non ERP
-        non_erp_label = 0
+
         # for w in W plot the signal
         for w in range(W):
             sum_range = big_decision_block[d,non_erp_label,w,0,0:10].sum()
             if sum_range != 0:
                 for n in range(N):
-                    color_string = "C{}".format(int(n))
+                    color_string = f"C{int(n)}"
                     ax[1].plot(t, big_decision_block[d,non_erp_label,w,n,:], label=channel_labels[n], color=color_string)
 
                 # plot the average of all W in bold
-                color_string = "C{}".format(int(n))
+                color_string = f"C{int(n)}"
             else:
                 wmax = w-1
                 break
-        
+
         win_mean_bdb = np.mean(big_decision_block[d,non_erp_label,:,:,:], axis=0)
         for n in range(N):
-            color_string = "C{}".format(int(n))
+            color_string = f"C{int(n)}"
             ax[1].plot(t, win_mean_bdb[n,:], label=channel_labels[n], color=color_string, linewidth=1.0)
 
-        ax[1].set_title("Non-ERP on object{}".format(non_erp_label))
+        ax[1].set_title(f"Non-ERP on object{non_erp_label}")
         ax[1].set_ylim(ylims)
         ax[1].legend()
-            # for w in W plot the signal
-
-            # plot the average of all W in bold
-
         fig[d].show()
 
 
