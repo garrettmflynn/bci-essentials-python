@@ -190,6 +190,10 @@ class EEG_data():
             self.nchannels = 23
             self.channel_labels.pop()
 
+        # If it is a OpenBCI LSL stream, do some stuff...
+        if self.headset_string == "openbci_eeg":
+                print('Connected to an OpenBCI device!')
+
         # if self.headset_string == "EmotivDataStream-EEG":
 
         #     self.nchannels = 32
