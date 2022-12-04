@@ -39,8 +39,8 @@ def dc_reject(data):
     b = [1, -1]
     a = [1, -0.99]
 
-    for p in range(0, P):
-        for n in range(0, N):
+    for p in range(P):
+        for n in range(N):
             new_data[n,...,p] = signal.filtfilt(b,a,data[n,...,p])
 
     return new_data
@@ -52,10 +52,10 @@ def detrend(data):
     except:
         N, M =np.shape(data)
         P = 1
-        
+
     new_data = np.ndarray(shape=(N, M, P), dtype=float)
 
-    for p in range(0,P):
+    for p in range(P):
         new_data[0:N,0:M,p] = signal.detrend(data[0:N,0:M,p], axis=1)
 
     return new_data
@@ -66,15 +66,15 @@ def lowpass(data, f_high, order, fsample):
     except:
         N, M =np.shape(data)
         P = 1
-    
+
     Wn = f_high/(fsample/2)
     new_data = np.ndarray(shape=(N, M, P), dtype=float) 
-    
+
     b, a = signal.butter(order, Wn, btype='lowpass')
-    
-    for p in range(0,P):
+
+    for p in range(P):
         new_data[0:N,0:M,p] = signal.filtfilt(b, a, data[0:N,0:M,p], axis=1, padlen=30)
-        
+
     return new_data
 
 def bandpass(data, f_low, f_high, order, fsample):
@@ -93,8 +93,8 @@ def bandpass(data, f_low, f_high, order, fsample):
         # # subtract the mean
         # data_reshape = data_reshape - np.mean(data_reshape, axis=1)
 
-        new_data = np.ndarray(shape=(N, M, P), dtype=float) 
-        for p in range(0,P):
+        new_data = np.ndarray(shape=(N, M, P), dtype=float)
+        for p in range(P):
             new_data[0:N,0:M,p] = signal.filtfilt(b, a, data_reshape[0:N,0:M,p], axis=1, padlen=30)
 
         # Visualize the effect of the filter
@@ -115,7 +115,7 @@ def bandpass(data, f_low, f_high, order, fsample):
 
         new_data = np.swapaxes(np.swapaxes(new_data, 0, 2), 1, 2)
         return new_data
-        
+
     except:
         N, M = np.shape(data)
 
@@ -144,11 +144,11 @@ def notchfilt(data, fsample, Q=30, fc=60):
 
     try:
         N, M, P = np.shape(data)
-        new_data = np.ndarray(shape=(N, M, P), dtype=float) 
-        for p in range(0,P):
+        new_data = np.ndarray(shape=(N, M, P), dtype=float)
+        for p in range(P):
             new_data[0:N,0:M,p] = signal.filtfilt(b, a, data[0:N,0:M,p], axis=1, padlen=30)
         return new_data
-        
+
     except:
         N, M = np.shape(data)
         new_data = np.ndarray(shape=(N, M), dtype=float) 

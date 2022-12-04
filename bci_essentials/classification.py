@@ -62,7 +62,7 @@ def lico(X,y,expansion_factor=3, sum_num=2, shuffle=False):
     new_n = n*np.round(expansion_factor-1)
     new_X = np.zeros([new_n,m,p])
     for i in range(n):
-        for j in range(sum_num):
+        for _ in range(sum_num):
             new_X[i,:,:] += true_X[random.choice(range(n)),:,:] / sum_num
 
     over_X = np.append(X,new_X,axis=0)
@@ -361,7 +361,7 @@ class erp_rg_classifier(generic_classifier):
         # Init predictions to all false 
         preds = np.zeros(len(self.y))
 
-        # 
+        #
         def erp_rg_kernel(X,y):
             for train_idx, test_idx in cv.split(X,y):
                 y_train, y_test = y[train_idx], y[test_idx]
@@ -372,11 +372,10 @@ class erp_rg_classifier(generic_classifier):
                 #LICO
                 if print_fit:
                     print ("Before LICO: Shape X",X_train.shape,"Shape y", y_train.shape)
-                if sum(y_train) > 2:
-                    if lico_expansion_factor > 1:
-                        X_train, y_train = lico(X_train, y_train, expansion_factor=lico_expansion_factor, sum_num=2, shuffle=False)
-                        if print_fit:
-                            print("y_train =",y_train)
+                if sum(y_train) > 2 and lico_expansion_factor > 1:
+                    X_train, y_train = lico(X_train, y_train, expansion_factor=lico_expansion_factor, sum_num=2, shuffle=False)
+                    if print_fit:
+                        print("y_train =",y_train)
                 if print_fit:
                     print("After LICO: Shape X",X_train.shape,"Shape y", y_train.shape)
 
@@ -397,7 +396,7 @@ class erp_rg_classifier(generic_classifier):
 
                         X_train = np.append(X_train,to_add_X[np.newaxis,:],axis=0)
                         y_train = np.append(y_train,[1],axis=0)
-                    
+
 
                 # Undersampling
                 if self.undersample_ratio > 0:
@@ -425,7 +424,7 @@ class erp_rg_classifier(generic_classifier):
                         to_remove.append(remove_at)
 
                         #np.delete(false_ind,remove_at,axis=0)
-                        
+
                         #ind_range
 
                         #np.delete(X_train,remove_at,axis=0)
@@ -467,7 +466,8 @@ class erp_rg_classifier(generic_classifier):
 
             return model, preds, accuracy, precision, recall
 
-        
+
+
         # Check if channel selection is true
         if self.channel_selection_setup:
             print("Doing channel selection")
@@ -477,7 +477,7 @@ class erp_rg_classifier(generic_classifier):
                                                                             self.chs_method, self.chs_metric, self.chs_initial_subset,                                      # wrapper setup
                                                                             self.chs_max_time, self.chs_min_channels, self.chs_max_channels, self.chs_performance_delta,    # stopping criterion
                                                                             self.chs_n_jobs, self.chs_output)                                                               # njobs, output messages
-                
+
             print("The optimal subset is ", updated_subset)
 
             self.subset = updated_subset
@@ -486,7 +486,7 @@ class erp_rg_classifier(generic_classifier):
             print("Not doing channel selection")
             self.clf, preds, accuracy, precision, recall = erp_rg_kernel(self.X, self.y)
 
-        
+
 
         # Print performance stats
         # accuracy
@@ -731,36 +731,27 @@ class mi_classifier(generic_classifier):
         self.cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=random_seed)
 
         self.covariance_estimator = covariance_estimator
-        
-        # Shrinkage LDA
-        if type == "sLDA":
-            slda = LinearDiscriminantAnalysis(solver='eigen',shrinkage='auto')
-            self.clf_model = Pipeline([("Shrinkage LDA", slda)])
-            self.clf = Pipeline([("Shrinkage LDA", slda)])
 
-        # Random Forest
+        # Shrinkage LDA
+        if type == "MDM":
+            mdm = MDM(metric=dict(mean='riemann', distance='riemann'), n_jobs = n_jobs)
+            self.clf_model = Pipeline([("MDM", mdm)])
+            self.clf = Pipeline([("MDM", mdm)])
+
         elif type == "RandomForest":
             rf = RandomForestClassifier()
             self.clf_model = Pipeline([("Random Forest", rf)])
             self.clf = Pipeline([("Random Forest", rf)])
 
-        # Tangent Space Logistic Regression
         elif type == "TS":
             ts = TSclassifier()
             self.clf_model = Pipeline([("Tangent Space", ts)])
             self.clf = Pipeline([("Tangent Space", ts)])
 
-        # Minimum Distance to Mean 
-        elif type == "MDM":
-            mdm = MDM(metric=dict(mean='riemann', distance='riemann'), n_jobs = n_jobs)
-            self.clf_model = Pipeline([("MDM", mdm)])
-            self.clf = Pipeline([("MDM", mdm)])
-
-        # CSP + Logistic Regression (REQUIRES MNE CSP)
-        # elif type == "CSP-LR":
-        #     lr = LogisticRegression()
-        #     self.clf_model = Pipeline([('CSP', csp), ('LogisticRegression', lr)])
-        #     self.clf = Pipeline([('CSP', csp), ('LogisticRegression', lr)])
+        elif type == "sLDA":
+            slda = LinearDiscriminantAnalysis(solver='eigen',shrinkage='auto')
+            self.clf_model = Pipeline([("Shrinkage LDA", slda)])
+            self.clf = Pipeline([("Shrinkage LDA", slda)])
 
         else:
             print("Classifier type not defined") 
@@ -1001,7 +992,7 @@ class switch_classifier_mdm(generic_classifier):
                     self.clf0and1.compile(optimizer=Adam(learning_rate=0.001), loss='sparse_categorical_crossentropy', metrics=['accuracy'])
                     # Fit the model
                     self.clf0and1.fit(x=X_train_scaled, y=y_train, batch_size=5, epochs=4, shuffle=True, verbose=2, validation_data=(X_test_scaled, y_test)) # Need to reshape X_train
-                    
+
                 else:
                     print("\nWorking on second model...")
                     # Compile the model
@@ -1019,15 +1010,15 @@ class switch_classifier_mdm(generic_classifier):
             # accuracy
             accuracy = sum(preds == self.y)/len(preds)
             self.offline_accuracy.append(accuracy)
-            print("accuracy = {}".format(accuracy))
+            print(f"accuracy = {accuracy}")
             # precision
             precision = precision_score(self.y,preds, average = 'micro')
             self.offline_precision.append(precision)
-            print("precision = {}".format(precision))
+            print(f"precision = {precision}")
             # recall
             recall = recall_score(self.y, preds, average = 'micro')
             self.offline_recall.append(recall)
-            print("recall = {}".format(recall))
+            print(f"recall = {recall}")
             # confusion matrix in command line
             cm = confusion_matrix(self.y, preds)
             self.offline_cm = cm
@@ -1157,7 +1148,7 @@ class switch_classifier_deep(generic_classifier):
             print("Error. Self.X should not be a list")
             print("Correcting now...")
             self.X = np.array(self.X)
-            
+
         # get dimensions
         nwindows, nchannels, nsamples = self.X.shape 
 
@@ -1248,24 +1239,26 @@ class switch_classifier_deep(generic_classifier):
 
                 for row in preds:
                     print(f"row is: {row}")
-                    if i == 0:
-                        if row[0] > row[1]:
-                            final_preds = np.append(final_preds, 0)
-                        elif row[0] < row[1]:
-                            final_preds = np.append(final_preds, 1)
-                    elif i == 1:
-                        if row[0] > row[2]:
-                            final_preds = np.append(final_preds, 0)
-                        elif row[0] < row[2]:
-                            final_preds = np.append(final_preds, 2)
-                            
+                    if (
+                        i == 0
+                        and row[0] > row[1]
+                        or i != 0
+                        and i == 1
+                        and row[0] > row[2]
+                    ):
+                        final_preds = np.append(final_preds, 0)
+                    elif i == 0 and row[0] < row[1]:
+                        final_preds = np.append(final_preds, 1)
+                    elif i != 0 and (i != 1 or row[0] < row[2]) and i == 1:
+                        final_preds = np.append(final_preds, 2)
+
                 accuracy = accuracy_score(y_class_test, final_preds)
                 self.offline_accuracy.append(accuracy)
 
                 print(f"final_preds is: {final_preds}")
                 print(f"y_class_test is: {y_class_test}")
 
-                print("accuracy = {}".format(accuracy))
+                print(f"accuracy = {accuracy}")
 
             # confusion matrix in command line
             cm = confusion_matrix(y_class_test, final_preds)
@@ -1309,23 +1302,20 @@ class switch_classifier_deep(generic_classifier):
             preds = self.clfs[i].predict(X_predict_scaled)
             final_predictions.append(np.ndarray.tolist(preds))
 
-        # This part of predict is about reformatting the data
-        iterations = 0
         temp_list = []
         final_preds = []
 
         # Copying the important values from final_predictions into new list
-        for i in final_predictions:
+        for iterations, i in enumerate(final_predictions):
             for sub_list in i:
                 temp_list.append(sub_list[iterations+1])
 
-            iterations += 1
             final_preds.append(temp_list)
             temp_list = []
 
         '''This will format predictions so that unity can understand them. 
         However, it only works with two objects right now because of the x and y in zip'''
-        
+
         try:
             temp_list_new = []
             formatted_preds = []
@@ -1333,20 +1323,18 @@ class switch_classifier_deep(generic_classifier):
                 temp_list_new.append(x)
                 temp_list_new.append(y)
                 formatted_preds.append(temp_list_new)
-                
+
                 temp_list_new = []
 
             string_list = []
 
             for preds_list in formatted_preds:
-                for some_float in preds_list:
-                    string_list.append(str(some_float))
-
+                string_list.extend(str(some_float) for some_float in preds_list)
             final_string = ', '.join(string_list)
 
             print(f"final preds is: {final_preds}")
             print(f"string_preds are: {final_string}")
-            
+
             return final_string
         except:
             print("Error - there are not an appropriate amount of labels (three) to complete predictions on")

@@ -90,9 +90,9 @@ class EEG_data():
         """
         self.subset = subset
 
-        if(format == 'xdf'):
+        if (format == 'xdf'):
             if print_output:
-                print("loading ERP data from {}".format(filename))
+                print(f"loading ERP data from {filename}")
 
             # load from xdf
             data, self.header = pyxdf.load_xdf(filename)
@@ -137,9 +137,6 @@ class EEG_data():
 
 
 
-        # support for other file types goes here
-
-        # otherwise show an error
         else:
             print("Error: file format not supported")
 
@@ -162,13 +159,15 @@ class EEG_data():
         self.nchannels = int(data[self.eeg_index]['info']['channel_count'][0])   # number of channels 
         self.channel_labels = []                                                 # channel labels/locations, 'TRG' means trigger
         try:
-            for i in range(self.nchannels):
-                self.channel_labels.append(data[self.eeg_index]['info']['desc'][0]['channels'][0]['channel'][i]['label'][0])
+            self.channel_labels.extend(
+                data[self.eeg_index]['info']['desc'][0]['channels'][0]['channel'][
+                    i
+                ]['label'][0]
+                for i in range(self.nchannels)
+            )
 
         except:
-            for i in range(self.nchannels):
-                self.channel_labels.append("?")
-        
+            self.channel_labels.extend("?" for _ in range(self.nchannels))
         if print_output:
             print(self.channel_labels)
 
@@ -186,7 +185,7 @@ class EEG_data():
             self.channel_labels.pop()
 
         if self.headset_string == "DSI24":
-            
+
             self.nchannels = 23
             self.channel_labels.pop()
 
@@ -205,10 +204,7 @@ class EEG_data():
                 print(self.channel_labels)
 
             self.nchannels = len(self.subset)
-            self.subset_indices = []
-            for s in self.subset:
-                self.subset_indices.append(self.channel_labels.index(s))
-
+            self.subset_indices = [self.channel_labels.index(s) for s in self.subset]
             self.channel_labels = self.subset
             if print_output:
                 print("Subset channels")
@@ -218,7 +214,7 @@ class EEG_data():
             self.eeg_data = self.eeg_data[:, self.subset_indices]
 
         else:
-            self.subset_indices = list(range(0,self.nchannels))
+            self.subset_indices = list(range(self.nchannels))
 
         # send channel labels to classifier
         try:
@@ -254,11 +250,11 @@ class EEG_data():
                 marker_info = self.marker_inlet.info()
                 print("The marker stream's XML meta-data is: ")
                 print(marker_info.as_xml())
-                
+
             except Exception as e:
                 print("No marker stream currently available")
                 exit_flag = 1
-            
+
         # Resolve EEG marker stream
         try: 
             print("Resolving LSL EEG stream... ")
@@ -274,7 +270,7 @@ class EEG_data():
             # if there are no explicit settings
             if self.explicit_settings == False:
                 self.get_info_from_stream()
-            
+
         except Exception as e:
             print("No EEG stream currently available")
             print(e) # print the exception
@@ -289,7 +285,7 @@ class EEG_data():
         self.marker_timestamps = []
         self.eeg_data = []
         self.eeg_timestamps = []
-        
+
         self.marker_data = np.array(self.marker_data)
         self.marker_timestamps = np.array(self.marker_timestamps)
         self.eeg_data = np.array(self.eeg_data)
@@ -311,7 +307,7 @@ class EEG_data():
         ch = eeg_info.desc().child("channels").child("channel")
         self.channel_labels = []                         # channel labels/locations, 'TRG' means trigger
         print("num channels = ", self.nchannels)
-        for i in range(self.nchannels):
+        for _ in range(self.nchannels):
             name = ch.child_value("name")
             if name == "":
                 name = ch.child_value("label")
@@ -320,7 +316,12 @@ class EEG_data():
             ch = ch.next_sibling()
 
         # if it is the DSI7 flex, relabel the channels, may want to make this more flexible in the future
-        if self.headset_string == "DSI7":  #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        if self.headset_string == "DSI24":
+            self.channel_labels.pop()
+            self.nchannels = 23
+
+
+        elif self.headset_string == "DSI7":
             # print(self.channel_labels)
             # self.channel_labels[self.channel_labels.index('S1')] = 'O1'
             # self.channel_labels[self.channel_labels.index('S2')] = 'Pz'
@@ -328,12 +329,6 @@ class EEG_data():
 
             self.channel_labels.pop()
             self.nchannels = 7
-
-        if self.headset_string == "DSI24":
-            
-            self.channel_labels.pop()
-            self.nchannels = 23
-
 
         # if self.headset_string == "EmotivDataStream-EEG":
 
@@ -347,9 +342,7 @@ class EEG_data():
             print("Original channels")
             print(self.channel_labels)
             self.nchannels = len(self.subset)
-            self.subset_indices = []
-            for s in self.subset:
-                self.subset_indices.append(self.channel_labels.index(s))
+            self.subset_indices = [self.channel_labels.index(s) for s in self.subset]
             self.channel_labels = self.subset
             print("Subset channels")
             print(self.channel_labels)
@@ -364,15 +357,13 @@ class EEG_data():
 
             self.nchannels = len(self.subset)
             self.subset_indices = []
-            for s in self.subset:
-                self.subset_indices.append(self.channel_labels.index(s))
-
+            self.subset_indices.extend(self.channel_labels.index(s) for s in self.subset)
             self.channel_labels = self.subset
             print("Subset channels")
             print(self.channel_labels)
 
         else:
-            self.subset_indices = list(range(0,self.nchannels))
+            self.subset_indices = list(range(self.nchannels))
 
         # send channel labels to classifier
         try:
@@ -407,7 +398,7 @@ class EEG_data():
         if include_eeg == True:
             new_eeg_data, new_eeg_timestamps = self.eeg_inlet.pull_chunk(timeout=0.1)
             new_eeg_data = np.array(new_eeg_data)
-            
+
             #Handle the case when you are using subsets
             if self.subset!=[]:
                 new_eeg_data = new_eeg_data[:, self.subset_indices]   
@@ -424,7 +415,7 @@ class EEG_data():
                 while (new_eeg_timestamps[dif_high] - new_eeg_timestamps[dif_low] == 0):
                     dif_low -= 1
                     dif_high -= 1
-                
+
                 if new_eeg_timestamps[dif_high] - new_eeg_timestamps[dif_low] > 0.1:
                     new_eeg_timestamps = [(new_eeg_timestamps[i]/1000) for i in range(len(new_eeg_timestamps))]
                     self.time_units = 'milliseconds'
@@ -436,7 +427,7 @@ class EEG_data():
 
             # MAYBE DONT NEED THIS WITH NEW PROC SETTINGS
             new_eeg_timestamps = [new_eeg_timestamps[i] + self.eeg_time_correction for i in range(len(new_eeg_timestamps))]
-        
+
             # save the EEG data to the data object
             try:
                 self.eeg_data = np.concatenate((self.eeg_data, new_eeg_data))
@@ -473,18 +464,13 @@ class EEG_data():
         Howdy
         """
         # do nothing
-        if option == None:
-            new_window = window
-            return new_window    
-
+        if option is None:
+            return window
         if option == 'notch':
-            new_window = notchfilt(window, self.fsample, Q=30, fc=60)
-            return new_window
-
+            return notchfilt(window, self.fsample, Q=30, fc=60)
         if option == 'bandpass':
 
-            new_window = bandpass(window, fl, fh, order, self.fsample)
-            return new_window
+            return bandpass(window, fl, fh, order, self.fsample)
 
         # other preprocessing options go here
 
@@ -494,9 +480,8 @@ class EEG_data():
         Howdy
         """
         # do nothing
-        if option == None:
-            new_window = window
-            return new_window
+        if option is None:
+            return window
 
         # other preprocessing options go here\
 
@@ -562,11 +547,11 @@ class EEG_data():
                 rest_end_loc.append(current_timestamp_loc)
                 # print("received rest end")
 
-        
+
         # Eyes open
         # Get duration, nsmaples
 
-        if len(eyes_open_end_loc) > 0:
+        if eyes_open_end_loc:
             duration = np.floor(eyes_open_end_time[0] - eyes_open_start_time[0])
             nsamples = int(duration * self.fsample) 
 
@@ -579,7 +564,7 @@ class EEG_data():
                 for c in range(self.nchannels):
                     # First, adjust the EEG timestamps to start from zero
                     eeg_timestamps_adjusted = self.eeg_timestamps[eyes_open_start_loc[i]:eyes_open_end_loc[i]] - self.eeg_timestamps[eyes_open_start_loc[i]]
-                    
+
                     # Second, interpolate to timestamps at a uniform sampling rate
                     channel_data = np.interp(self.eyes_open_timestamps, eeg_timestamps_adjusted, self.eeg_data[eyes_open_start_loc[i]:eyes_open_end_loc[i],c])
 
@@ -591,7 +576,7 @@ class EEG_data():
 
         # Eyes closed 
 
-        if len(eyes_closed_end_loc) > 0:
+        if eyes_closed_end_loc:
             # Get duration, nsmaples
             duration = np.floor(eyes_closed_end_time[0] - eyes_closed_start_time[0])
             nsamples = int(duration * self.fsample) 
@@ -605,7 +590,7 @@ class EEG_data():
                 for c in range(self.nchannels):
                     # First, adjust the EEG timestamps to start from zero
                     eeg_timestamps_adjusted = self.eeg_timestamps[eyes_closed_start_loc[i]:eyes_closed_end_loc[i]] - self.eeg_timestamps[eyes_closed_start_loc[i]]
-                    
+
                     # Second, interpolate to timestamps at a uniform sampling rate
                     channel_data = np.interp(self.eyes_closed_timestamps, eeg_timestamps_adjusted, self.eeg_data[eyes_closed_start_loc[i]:eyes_closed_end_loc[i],c])
 
@@ -614,14 +599,14 @@ class EEG_data():
                     self.eyes_closed_timestamps
 
         # Rest
-        if len(rest_end_loc) > 0:
+        if rest_end_loc:
             # Get duration, nsmaples
             while(rest_end_time[0] < rest_start_time[0]):
                 rest_end_time.pop(0)
                 rest_end_loc.pop(0)
 
             duration = np.floor(rest_end_time[0] - rest_start_time[0])
-            
+
 
             nsamples = int(duration * self.fsample) 
 
@@ -634,7 +619,7 @@ class EEG_data():
                 for c in range(self.nchannels):
                     # First, adjust the EEG timestamps to start from zero
                     eeg_timestamps_adjusted = self.eeg_timestamps[rest_start_loc[i]:rest_end_loc[i]] - self.eeg_timestamps[rest_start_loc[i]]
-                    
+
                     # Second, interpolate to timestamps at a uniform sampling rate
                     channel_data = np.interp(self.rest_timestamps, eeg_timestamps_adjusted, self.eeg_data[rest_start_loc[i]:rest_end_loc[i],c])
 

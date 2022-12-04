@@ -15,6 +15,7 @@ Created on Wed Apr 21 10:26:44 2021
 
 @author: brianirvine
 """
+
 import os
 import sys
 import time
@@ -32,7 +33,7 @@ from bci_essentials.bci_data import EEG_data
 start_now = False
 try:
     arg1 = sys.argv[1]
-    if arg1 == 'now' or arg1 == '-n':
+    if arg1 in ['now', '-n']:
         print('starting stream immediately')
         start_now = True
 except:
@@ -87,7 +88,7 @@ for c in eeg_stream.channel_labels:
 # create the EEG stream
 outlet = StreamOutlet(info)
 
-if start_now == False:
+if not start_now:
     # publish to stream at the next rounded minute 
     now_time = datetime.datetime.now()
     print("Current time is ", now_time)
@@ -103,17 +104,14 @@ if start_now == False:
 now_time = datetime.datetime.now()
 print("Current time is ", now_time)
 
-i = 0
-while i < nloops:
-    for j in range(0, len(eeg_time_stamps) - 1):
+for _ in range(nloops):
+    for j in range(len(eeg_time_stamps) - 1):
         # publish to stream
         eeg_sample = eeg_time_series[j][:]
         outlet.push_sample(eeg_sample)
         if j != len(eeg_time_stamps):
             time.sleep(eeg_time_stamps[j+1] - eeg_time_stamps[j])
-    i += 1
-
 # delete the outlet
-print("Deleting EEG stream")    
+print("Deleting EEG stream")
 outlet.__del__()
 print("Done.")

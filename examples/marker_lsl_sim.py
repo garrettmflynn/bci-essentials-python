@@ -15,6 +15,7 @@ Created on Wed Apr 21 10:26:44 2021
 
 @author: brianirvine
 """
+
 import os
 import sys
 import time
@@ -32,7 +33,7 @@ from bci_essentials.bci_data import EEG_data
 start_now = False
 try:
     arg1 = sys.argv[1]
-    if arg1 == 'now' or arg1 == '-n':
+    if arg1 in ['now', '-n']:
         print('starting stream immediately')
         start_now = True
 except:
@@ -72,11 +73,10 @@ eeg_time_series = eeg_time_series[tuple(eeg_keep_ind)]
 fs_marker = round(len(marker_time_stamps) / (time_stop - time_start))
 fs_eeg = round(len(eeg_time_stamps) / (time_stop - time_start))
 
-i = 0
 info = StreamInfo('MockMarker', 'LSL_Marker_Strings', 1, fs_marker, 'string', 'mockmark1')
 outlet = StreamOutlet(info)
 
-if start_now == False:
+if not start_now:
     # publish to stream at the next rounded minute 
     now_time = datetime.datetime.now()
     print("Current time is ", now_time)
@@ -92,15 +92,13 @@ if start_now == False:
 now_time = datetime.datetime.now()
 print("Current time is ", now_time)
 
-while i < nloops:
-    for j in range(0, len(marker_time_series) - 1):
+for _ in range(nloops):
+    for j in range(len(marker_time_series) - 1):
         # publish to stream
         outlet.push_sample(marker_time_series[j])
 
         if j != len(marker_time_stamps):
             time.sleep((marker_time_stamps[j+1] - marker_time_stamps[j]))
-    i += 1
-    
 # delete the outlet    
 print("Deleting marker stream...")
 outlet.__del__()
